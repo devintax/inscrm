@@ -47,3 +47,30 @@ jobs:
           labels: ${{ steps.meta.outputs.labels }}
           cache-from: type=gha,scope=${{ matrix.name }}
           cache-to: type=gha,mode=max,scope=${{ matrix.name }}
+
+  deploy:
+    name: Deploy to Coolify
+    needs: publish
+    runs-on: ubuntu-latest
+    env:
+      COOLIFY_WEBHOOK: ${{ secrets.COOLIFY_WEBHOOK }}
+      COOLIFY_TOKEN: ${{ secrets.COOLIFY_TOKEN }}
+    steps:
+      - name: Check Coolify deployment configuration
+        id: config
+        shell: bash
+        run: |
+          if [[ -n "$COOLIFY_WEBHOOK" && -n "$COOLIFY_TOKEN" ]]; then
+            echo "configured=true" >> "$GITHUB_OUTPUT"
+          else
+            echo "configured=false" >> "$GITHUB_OUTPUT"
+            echo "::notice::Coolify deployment skipped because COOLIFY_WEBHOOK or COOLIFY_TOKEN is not configured."
+          fi
+
+      - name: Trigger Coolify deployment
+        if: steps.config.outputs.configured == 'true'
+        shell: bash
+        run: |
+          curl --fail-with-body --silent --show-error \
+            --request GET "$COOLIFY_WEBHOOK" \
+            --header "Authorization: Bearer $COOLIFY_TOKEN"

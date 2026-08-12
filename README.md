@@ -4,6 +4,8 @@ Good Insurance Services CRMâ€”shown as GIS Insurance in compact interface areasâ
 
 The interface uses the supplied GIS globe-and-red-ring logo. Its sampled palette is red `#FF0000`, deep blue `#216499`, and gold `#DCBB77`.
 
+See [DEPLOYMENT.md](DEPLOYMENT.md) for the CI/CD release flow, Coolify migration checklist, and rollback procedure.
+
 ## Run locally with Docker
 
 Requirements: Docker Desktop with Docker Compose v2.
