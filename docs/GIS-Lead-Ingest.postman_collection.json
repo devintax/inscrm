@@ -1,0 +1,25 @@
+{
+  "info": {
+    "name": "GIS Insurance Lead Ingest",
+    "schema": "https://schema.getpostman.com/json/collection/v2.1.0/collection.json"
+  },
+  "variable": [
+    { "key": "crmBaseUrl", "value": "http://localhost:3000" },
+    { "key": "leadIngestSecret", "value": "SET_IN_YOUR_LOCAL_POSTMAN_ENVIRONMENT" }
+  ],
+  "item": [{
+    "name": "Create external lead",
+    "request": {
+      "method": "POST",
+      "header": [
+        { "key": "Authorization", "value": "Bearer {{leadIngestSecret}}", "type": "text" },
+        { "key": "Content-Type", "value": "application/json", "type": "text" }
+      ],
+      "url": "{{crmBaseUrl}}/api/v1/external/leads",
+      "body": {
+        "mode": "raw",
+        "raw": "{\n  \"id\": 123,\n  \"full_name\": \"Sample Lead\",\n  \"email\": \"sample@example.com\",\n  \"phone\": \"(302) 555-0100\",\n  \"source\": \"web_quote_form\",\n  \"created_at\": \"2026-08-12T12:00:00Z\",\n  \"vehicle_year\": 2024,\n  \"vehicle_make\": \"Toyota\",\n  \"vehicle_model\": \"Camry\",\n  \"coverage_type\": \"Full Coverage\",\n  \"consent_granted\": true,\n  \"consent_timestamp\": \"2026-08-12T12:00:00Z\"\n}"
+      }
+    }
+  }]
+}

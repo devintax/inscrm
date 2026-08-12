@@ -1,0 +1,96 @@
+name: gis-insurance
+
+services:
+  mongo:
+    image: mongo:7.0
+    restart: unless-stopped
+    environment:
+      MONGO_INITDB_ROOT_USERNAME: ${MONGO_ROOT_USERNAME}
+      MONGO_INITDB_ROOT_PASSWORD: ${MONGO_ROOT_PASSWORD}
+    volumes:
+      - mongo_data:/data/db
+    networks:
+      - crm_internal
+    healthcheck:
+      test: ["CMD-SHELL", "mongosh --quiet --username $$MONGO_INITDB_ROOT_USERNAME --password $$MONGO_INITDB_ROOT_PASSWORD --authenticationDatabase admin --eval 'db.adminCommand({ ping: 1 })' || exit 1"]
+      interval: 10s
+      timeout: 5s
+      retries: 10
+      start_period: 20s
+
+  server:
+    build:
+      context: ./server
+    restart: unless-stopped
+    environment:
+      PORT: 5000
+      MONGODB_URI: mongodb://${MONGO_ROOT_USERNAME}:${MONGO_ROOT_PASSWORD}@mongo:27017/?authSource=admin
+      MONGODB_DATABASE: ${MONGODB_DATABASE}
+      JWT_SECRET: ${JWT_SECRET}
+      JWT_EXPIRES_IN: ${JWT_EXPIRES_IN:-1d}
+      LEAD_INGEST_SECRET: ${LEAD_INGEST_SECRET}
+      LEAD_INGEST_RATE_LIMIT: ${LEAD_INGEST_RATE_LIMIT:-60}
+      LEAD_DEDUPE_HOURS: ${LEAD_DEDUPE_HOURS:-48}
+      INSFORGE_BASE_URL: ${INSFORGE_BASE_URL:-}
+      INSFORGE_API_KEY: ${INSFORGE_API_KEY:-}
+      CORS_ORIGINS: ${CORS_ORIGINS:-http://localhost:3000}
+      LOGIN_RATE_LIMIT: ${LOGIN_RATE_LIMIT:-10}
+      API_RATE_LIMIT: ${API_RATE_LIMIT:-2000}
+      SMTP_HOST: ${SMTP_HOST:-}
+      SMTP_PORT: ${SMTP_PORT:-587}
+      SMTP_SECURE: ${SMTP_SECURE:-false}
+      SMTP_USER: ${SMTP_USER:-}
+      SMTP_PASSWORD: ${SMTP_PASSWORD:-}
+      SMTP_FROM: ${SMTP_FROM:-Good Insurance Services <no-reply@example.com>}
+      ADMIN_FIRST_NAME: ${ADMIN_FIRST_NAME:-System}
+      ADMIN_LAST_NAME: ${ADMIN_LAST_NAME:-Administrator}
+      ADMIN_EMAIL: ${ADMIN_EMAIL:-admin@example.com}
+      ADMIN_PASSWORD: ${ADMIN_PASSWORD:-}
+    expose:
+      - "5000"
+    volumes:
+      - uploads_data:/app/uploads
+    networks:
+      - crm_internal
+    depends_on:
+      mongo:
+        condition: service_healthy
+    healthcheck:
+      test: ["CMD", "node", "-e", "fetch('http://localhost:5000/health').then(r=>{if(!r.ok)process.exit(1)}).catch(()=>process.exit(1))"]
+      interval: 10s
+      timeout: 5s
+      retries: 10
+      start_period: 20s
+
+  client:
+    build:
+      context: ./frontend
+    restart: unless-stopped
+    ports:
+      - "${CLIENT_PORT:-3000}:80"
+    networks:
+      - crm_internal
+    depends_on:
+      server:
+        condition: service_healthy
+
+  cloudflared:
+    image: cloudflare/cloudflared:latest
+    container_name: gis-crm-tunnel
+    command: tunnel --no-autoupdate run
+    environment:
+      TUNNEL_TOKEN: ${CLOUDFLARE_TUNNEL_TOKEN}
+    restart: unless-stopped
+    networks:
+      - crm_internal
+    depends_on:
+      client:
+        condition: service_started
+
+networks:
+  crm_internal:
+    driver: bridge
+
+volumes:
+  mongo_data:
+  uploads_data:
