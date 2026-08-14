@@ -8,6 +8,7 @@
     "start": "node --experimental-specifier-resolution=node index.js",
     "dev": "nodemon --experimental-specifier-resolution=node index.js",
     "seed:admin": "node --experimental-specifier-resolution=node scripts/seedAdmin.js",
+    "migrate:mongo": "node scripts/migrateMongo.js",
     "test": "node --check app.js && node --check controllers/externalLeads.js && node --check controllers/users.js"
   },
   "author": "Good Insurance Services",
