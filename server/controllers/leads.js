@@ -7,7 +7,11 @@ import Tasks from "../model/Tasks";
 import Emails from "../model/emails";
 
 const index = async (req, res) => {
-  const query = req.query
+  // Leads are a shared authenticated workspace. Older clients append a
+  // createdBy filter for non-admin users; ignore it so web-captured leads and
+  // manually created leads are visible to the whole service team.
+  const query = { ...req.query };
+  delete query.createdBy;
   query.deleted = false;
   let allData = await Lead.find(query).populate({
     path: 'createdBy',

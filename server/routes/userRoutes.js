@@ -19,7 +19,7 @@ router.get('/list', auth, Users.index)
 router.get('/view/:id', auth, Users.view)
 router.put('/edit/:id', auth, Users.edit)
 router.delete('/delete/:id', auth, Users.deleteData)
-router.post('/register', Users.register)
+router.post('/register', auth, Users.register)
 router.post('/login', loginLimiter, Users.login)
 
 export default router

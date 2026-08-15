@@ -3,30 +3,44 @@ import bcrypt from 'bcrypt'
 import jwt from 'jsonwebtoken'
 
 const index = async (req, res) => {
-    let result = await User.find({ deleted: false })
-    let totalRecords = await User.countDocuments();
+    let result = await User.find({ deleted: false }).select('-password')
+    let totalRecords = await User.countDocuments({ deleted: false });
     res.send({ result, total_recodes: totalRecords })
 }
 
 const view = async (req, res) => {
-    let user = await User.findById({ _id: req.params.id })
+    let user = await User.findById({ _id: req.params.id }).select('-password')
     if (!user) return res.status(404).json({ message: "no Data Found." })
     res.status(200).json(user)
 }
 
 const edit = async (req, res) => {
     try {
-        let result = await User.updateOne(
-            { _id: req.params.id },
-            {
-                $set: {
-                    firstName: req.body.firstName,
-                    lastName: req.body.lastName,
-                    emailAddress: req.body.emailAddress,
-                    modifiedOn: req.body.modifiedOn
-                }
-            },
-        );
+        const isAdmin = req.user?.role === 'admin';
+        const isSelf = String(req.user?.userId) === String(req.params.id);
+        if (!isAdmin && !isSelf) return res.status(403).json({ message: 'Not authorized to edit this user' });
+
+        const target = await User.findById(req.params.id);
+        if (!target || target.deleted) return res.status(404).json({ message: 'User not found' });
+
+        const updates = {
+            firstName: req.body.firstName,
+            lastName: req.body.lastName,
+            emailAddress: req.body.emailAddress,
+            modifiedOn: new Date(),
+        };
+
+        if (req.body.role !== undefined) {
+            if (!isAdmin) return res.status(403).json({ message: 'Only administrators can change roles' });
+            if (!['user', 'admin'].includes(req.body.role)) return res.status(400).json({ message: 'Invalid role' });
+            if (target.role === 'admin' && req.body.role !== 'admin') {
+                const activeAdmins = await User.countDocuments({ role: 'admin', deleted: false });
+                if (activeAdmins <= 1) return res.status(400).json({ message: 'The last administrator cannot be demoted' });
+            }
+            updates.role = req.body.role;
+        }
+
+        const result = await User.findByIdAndUpdate(req.params.id, { $set: updates }, { new: true }).select('-password');
         res.status(200).json({ result, message: 'User updated successfully' });
     } catch (err) {
         console.error('Failed to Update User:', err);
@@ -36,6 +50,7 @@ const edit = async (req, res) => {
 
 const deleteData = async (req, res) => {
     try {
+        if (req.user?.role !== 'admin') return res.status(403).json({ message: 'Only administrators can delete users' });
         // let user = await User.findByIdAndUpdate({ _id: req.params.id }, { deleted: true })
         // res.status(200).json({ message: "User delete successfully", user })
         const userId = req.params.id;
@@ -59,6 +74,7 @@ const deleteData = async (req, res) => {
 
 const register = async (req, res) => {
     try {
+        if (req.user?.role !== 'admin') return res.status(403).json({ message: 'Only administrators can create users' });
         const { firstName, lastName, emailAddress, password } = req.body;
         const strongPassword = /^(?=.*[a-z])(?=.*[A-Z])(?=.*\d)(?=.*[^A-Za-z0-9]).{12,}$/;
         if (!strongPassword.test(password || '')) {
@@ -108,7 +124,9 @@ const login = async (req, res) => {
             expiresIn: process.env.JWT_EXPIRES_IN || '1d'
         });
         res.setHeader('Authorization', token);
-        res.status(200).json({ token: token, user, message: 'Login successfully' });
+        const safeUser = user.toObject();
+        delete safeUser.password;
+        res.status(200).json({ token: token, user: safeUser, message: 'Login successfully' });
     } catch (error) {
         res.status(500).json({ message: 'An error occurred' });
     }

@@ -10,6 +10,7 @@ import DialogTitle from "@mui/material/DialogTitle";
 import Typography from "@mui/material/Typography";
 import Grid from "@mui/material/Grid";
 import TextField from "@mui/material/TextField";
+import MenuItem from "@mui/material/MenuItem";
 import ClearIcon from "@mui/icons-material/Clear";
 import { useFormik } from "formik";
 import * as yup from "yup";
@@ -24,6 +25,7 @@ const Edit = (props) => {
 
     const { handleClose, open, id, fetchUser } = props
     const [userDetails, setUserDetails] = useState({});
+    const currentUser = JSON.parse(localStorage.getItem('user'));
 
     // -----------  validationSchema
     const validationSchema = yup.object({
@@ -38,6 +40,7 @@ const Edit = (props) => {
         firstName: userDetails?.firstName,
         lastName: userDetails?.lastName,
         emailAddress: userDetails?.emailAddress,
+        role: userDetails?.role || "user",
         modifiedOn: ""
     };
 
@@ -68,6 +71,7 @@ const Edit = (props) => {
                 firstName: values.firstName,
                 lastName: values.lastName,
                 emailAddress: values.emailAddress,
+                ...(currentUser?.role === 'admin' && { role: values.role }),
                 modifiedOn: new Date()
             }
             EditUser(userData)
@@ -126,6 +130,23 @@ const Edit = (props) => {
                                     }
                                 />
                             </Grid>
+                            {currentUser?.role === 'admin' && (
+                                <Grid item xs={12} sm={12} md={12}>
+                                    <FormLabel>Role</FormLabel>
+                                    <TextField
+                                        select
+                                        id="role"
+                                        name="role"
+                                        size="small"
+                                        value={formik.values.role}
+                                        onChange={formik.handleChange}
+                                        fullWidth
+                                    >
+                                        <MenuItem value="user">User</MenuItem>
+                                        <MenuItem value="admin">Administrator</MenuItem>
+                                    </TextField>
+                                </Grid>
+                            )}
                             <Grid item xs={12} sm={12} md={12}>
                                 <FormLabel>Last name</FormLabel>
                                 <TextField
