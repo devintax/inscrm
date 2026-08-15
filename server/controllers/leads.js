@@ -48,10 +48,14 @@ const edit = async (req, res) => {
 
 const view = async (req, res) => {
   try {
+    if (!mongoose.isValidObjectId(req.params.id)) {
+      return res.status(400).json({ message: "Invalid lead id." });
+    }
+
     let leads = await Lead.aggregate([
       {
         $match: {
-          _id: mongoose.Types.ObjectId(req.params.id),
+          _id: new mongoose.Types.ObjectId(req.params.id),
         },
       },
 
