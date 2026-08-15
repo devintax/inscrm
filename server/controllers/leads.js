@@ -65,13 +65,6 @@ const view = async (req, res) => {
           localField: "_id",
           foreignField: "lead_id",
           as: "notes",
-          pipeline: [
-            {
-              $match: {
-                deleted: false, 
-              },
-            },
-          ],
         },
       },
 
@@ -81,13 +74,6 @@ const view = async (req, res) => {
           localField: "_id",
           foreignField: "lead_id",
           as: "calls",
-          pipeline: [
-            {
-              $match: {
-                deleted: false, 
-              },
-            },
-          ],
         },
       },
 
@@ -97,13 +83,6 @@ const view = async (req, res) => {
           localField: "_id",
           foreignField: "lead_id",
           as: "meetings",
-          pipeline: [
-            {
-              $match: {
-                deleted: false,
-              },
-            },
-          ],
         },
       },
       {
@@ -112,13 +91,6 @@ const view = async (req, res) => {
           localField: "_id",
           foreignField: "lead_id",
           as: "emails",
-          pipeline: [
-            {
-              $match: {
-                deleted: false, 
-              },
-            },
-          ],
         },
       },
       {
@@ -127,13 +99,15 @@ const view = async (req, res) => {
           localField: "_id",
           foreignField: "lead_id",
           as: "tasks",
-          pipeline: [
-            {
-              $match: {
-                deleted: false, 
-              },
-            },
-          ],
+        },
+      },
+      {
+        $set: {
+          notes: { $filter: { input: "$notes", as: "item", cond: { $eq: ["$$item.deleted", false] } } },
+          calls: { $filter: { input: "$calls", as: "item", cond: { $eq: ["$$item.deleted", false] } } },
+          meetings: { $filter: { input: "$meetings", as: "item", cond: { $eq: ["$$item.deleted", false] } } },
+          emails: { $filter: { input: "$emails", as: "item", cond: { $eq: ["$$item.deleted", false] } } },
+          tasks: { $filter: { input: "$tasks", as: "item", cond: { $eq: ["$$item.deleted", false] } } },
         },
       },
     ]);
